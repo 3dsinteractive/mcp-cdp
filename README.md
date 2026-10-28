@@ -7,6 +7,7 @@
 ## การตั้งค่าใช้งานกับ MCP Client (Claude Desktop / Antigravity / Cursor)
 
 ตัวอย่างคำสั่งภาษาไทยสำหรับผู้ใช้งานอยู่ใน [PROMPTS.md](PROMPTS.md)
+คำแนะนำสำหรับ AI agents อยู่ใน [AGENTS.md](AGENTS.md)
 ลูกค้า กลุ่มลูกค้า แคมเปญ และ Journey รองรับการอ้างอิงด้วย ID, ชื่อ หรือ alias โดยชื่อที่ซ้ำกันต้องใช้ alias ที่ไม่ซ้ำ
 ตัวอย่างไฟล์ลูกค้าสำหรับนำเข้าอยู่ใน [examples/customers.csv](examples/customers.csv) โดย MCP tool รับข้อมูลเป็น JSON จึงต้องแปลง CSV ก่อนนำเข้า
 
@@ -121,7 +122,7 @@ printf '%s\n' "$DOCKER_HUB_TOKEN" | ./docker-build.sh yourname/mcp-cdp 1.0.0 you
 
 ---
 
-## รายการ MCP Tools ทั้ง 6 โมดูล (27 Tools)
+## รายการ MCP Tools ทั้ง 7 หมวด (29 Tools)
 
 ### 1. จัดการข้อมูลลูกค้า (Customer Management)
 - `cdp_list_customers` — ดูรายชื่อลูกค้า ค้นหาและกรองตาม `lifecycle_stage`, `tier`, `city`, `tag`, `min_spent`
@@ -170,6 +171,13 @@ printf '%s\n' "$DOCKER_HUB_TOKEN" | ./docker-build.sh yourname/mcp-cdp 1.0.0 you
 - `cdp_get_journey_performance` — ดูผลลัพธ์ของ Journey (Funnel รายขั้นตอน, จำนวนคนแยกตามกิ่ง Yes/No, สถิติ Campaign ใน Journey และอัตรา Conversion)
 - `cdp_list_journeys` — ดูรายการ Customer Journeys ทั้งหมด
 
+### 7. ชุดข้อมูลเดโมคลินิกเสริมความงาม
+- `cdp_create_demo` — สร้างหรือสร้างใหม่ข้อมูลสังเคราะห์ของคลินิก: ลูกค้า 24 คน, Events มากกว่า 100 รายการ, Segments 7 กลุ่ม, Campaigns ครบ 7 ช่องทาง และ Journeys 3 ชุด
+- `cdp_delete_demo` — ลบชุดข้อมูลเดโมคลินิกและข้อมูลที่เกี่ยวข้อง โดยไม่ล้างฐานข้อมูลทั้งหมด
+
+เดโมนี้จำลองการจองปรึกษา การรับบริการ การซื้อแพ็กเกจ การพลาดนัด การติดตามผล และการตอบสนองต่อแคมเปญ ข้อความแคมเปญถูกบันทึกใน SQLite เพื่อสาธิตการทำงาน ไม่มีการส่งออกผ่านผู้ให้บริการจริง การสร้างเดโมซ้ำจะสร้างชุดข้อมูลใหม่แทนชุดเดิม
+คำสั่ง `npm run seed` ยังคงเป็นชุดข้อมูลตัวอย่างร้านค้าเดิม ส่วน `npm run demo` ใช้ชุดข้อมูลคลินิกเสริมความงาม
+
 ---
 
 ## คำสั่งทดสอบและเตรียมข้อมูลตัวอย่าง
@@ -180,6 +188,12 @@ npm test
 
 # เติมข้อมูลตัวอย่างลงใน data/cdp.sqlite
 npm run seed
+
+# สร้างเดโมคลินิกเสริมความงามผ่าน MCP stdio client
+npm run demo
+
+# ลบเฉพาะเดโมคลินิกเสริมความงาม
+npm run demo -- --delete
 
 # ล้างข้อมูลทุกตารางใน SQLite แต่คงโครงสร้างตารางไว้
 npm run reset

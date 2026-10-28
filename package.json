@@ -12,7 +12,7 @@
     "start:http": "node --no-warnings src/http.js",
     "start:stdio": "node --no-warnings src/index.js",
     "demo": "node --no-warnings src/demo-mcp-client.js",
-    "test": "node --no-warnings test/test-cdp.js && node --no-warnings test/test-references.js && node --no-warnings test/test-startup-db.js && node --no-warnings test/test-reset.js && node --no-warnings test/test-http.js",
+    "test": "node --no-warnings test/test-cdp.js && node --no-warnings test/test-references.js && node --no-warnings test/test-demo.js && node --no-warnings test/test-startup-db.js && node --no-warnings test/test-reset.js && node --no-warnings test/test-http.js",
     "seed": "node --no-warnings src/seed.js",
     "reset": "node --no-warnings src/reset.js"
   },

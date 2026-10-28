@@ -43,6 +43,7 @@ import {
   listJourneys
 } from './services/journeyService.js';
 import { resolveToolArgs } from './references.js';
+import { createBeautyClinicDemo, deleteBeautyClinicDemo } from './services/demoService.js';
 
 export const TOOLS = [
   // ============================================================================
@@ -675,6 +676,18 @@ export const TOOLS = [
       properties: {}
     },
     handler: () => listJourneys()
+  },
+  {
+    name: 'cdp_create_demo',
+    description: 'สร้างหรือสร้างใหม่ชุดข้อมูลสังเคราะห์คลินิกเสริมความงาม: ลูกค้า 24 คน, Events, Segments, Campaigns 7 ช่องทาง และ Journeys โดยไม่แก้ข้อมูลอื่น',
+    inputSchema: { type: 'object', properties: {} },
+    handler: () => createBeautyClinicDemo()
+  },
+  {
+    name: 'cdp_delete_demo',
+    description: 'ลบเฉพาะชุดข้อมูลสังเคราะห์คลินิกเสริมความงามที่สร้างโดย cdp_create_demo รวมข้อมูลที่เกี่ยวข้อง โดยไม่ reset ฐานข้อมูลทั้งหมด',
+    inputSchema: { type: 'object', properties: {} },
+    handler: () => deleteBeautyClinicDemo()
   }
 ];
 
