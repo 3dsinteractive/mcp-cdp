@@ -21,11 +21,34 @@ async function tool(name, args = {}) {
 const first = await tool('cdp_create_demo');
 assert.equal(first.counts.customers, 24);
 assert.ok(first.counts.events >= 100);
+assert.equal(first.counts.product_purchases, 12);
 assert.equal(first.counts.segments, 7);
 assert.equal(first.counts.campaigns, 7);
 assert.equal(first.counts.journeys, 3);
 assert.ok(first.counts.campaign_logs > 20);
 assert.ok(first.counts.journey_enrollments > 10);
+
+const productViews = await tool('cdp_list_events', { event_category: 'demo_beauty_clinic', event_name: 'product_view', limit: 100 });
+const carts = await tool('cdp_list_events', { event_category: 'demo_beauty_clinic', event_name: 'add_to_cart', limit: 100 });
+const purchases = await tool('cdp_list_events', { event_category: 'demo_beauty_clinic', event_name: 'purchase', limit: 100 });
+const productPurchases = purchases.events.filter((event) => event.properties.purchase_type === 'product');
+assert.equal(productViews.total, 24);
+assert.equal(carts.total, 17);
+assert.equal(productPurchases.length, 12);
+assert.ok(new Set(productPurchases.map((event) => event.properties.sku)).size >= 4);
+assert.equal(productPurchases.reduce((total, event) => total + event.revenue, 0), first.counts.product_revenue);
+assert.equal(new Set(productPurchases.map((event) => event.properties.order_id)).size, 12);
+for (const event of productPurchases) {
+  assert.equal(event.revenue, event.properties.quantity * event.properties.unit_price);
+  assert.equal(event.properties.items[0].sku, event.properties.sku);
+  assert.ok(productViews.events.some((view) => view.customer_id === event.customer_id && view.properties.sku === event.properties.sku));
+  assert.ok(carts.events.some((cart) => cart.customer_id === event.customer_id && cart.properties.sku === event.properties.sku));
+}
+assert.ok(carts.events.some((cart) => cart.customer_id === 'demo_beauty_customer_19' &&
+  !productPurchases.some((purchase) => purchase.customer_id === cart.customer_id)));
+const firstCustomer = getDb().prepare("SELECT total_spent, order_count FROM customers WHERE id = 'demo_beauty_customer_01'").get();
+assert.equal(firstCustomer.total_spent, 92000 + 7900 + 1380);
+assert.equal(firstCustomer.order_count, 10);
 
 const segment = await tool('cdp_get_segment_details', { segment_id: 'clinic-no-show' });
 assert.equal(segment.member_count, 4);

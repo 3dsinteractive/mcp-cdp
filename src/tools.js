@@ -679,7 +679,7 @@ export const TOOLS = [
   },
   {
     name: 'cdp_create_demo',
-    description: 'สร้างหรือสร้างใหม่ชุดข้อมูลสังเคราะห์คลินิกเสริมความงาม: ลูกค้า 24 คน, Events, Segments, Campaigns 7 ช่องทาง และ Journeys โดยไม่แก้ข้อมูลอื่น',
+    description: 'สร้างหรือสร้างใหม่ชุดข้อมูลสังเคราะห์คลินิกเสริมความงาม: ลูกค้า 24 คน, Events การรับบริการและซื้อสินค้าสกินแคร์, Segments, Campaigns 7 ช่องทาง และ Journeys โดยไม่แก้ข้อมูลอื่น',
     inputSchema: { type: 'object', properties: {} },
     handler: () => createBeautyClinicDemo()
   },

@@ -75,6 +75,7 @@ async function runDemo() {
     const created = await client.callTool('cdp_create_demo');
     console.log('\nสร้างชุดข้อมูลคลินิกตัวอย่าง:');
     console.log(`ลูกค้า ${created.counts.customers} คน | Events ${created.counts.events} | Segments ${created.counts.segments} | Campaigns ${created.counts.campaigns} | Journeys ${created.counts.journeys}`);
+    console.log(`ซื้อสินค้าสกินแคร์ ${created.counts.product_purchases} ออเดอร์ | ยอดขายสินค้า ${money(created.counts.product_revenue)}`);
     console.log(`บันทึกแคมเปญจำลอง ${created.counts.campaign_logs} รายการ | ผู้เข้า Journey ${created.counts.journey_enrollments} รายการ`);
     console.log('แคมเปญในเดโมเป็นการจำลองและบันทึกใน SQLite ไม่มีการส่งข้อความออกจริง');
 
@@ -105,6 +106,13 @@ async function runDemo() {
     console.log(`\nตัวอย่าง Events (${events.total} รายการ):`);
     for (const event of events.events) {
       console.log(`• ${event.event_name} — ${event.customer_id || event.anonymous_id} — ${event.timestamp}`);
+    }
+
+    const purchases = await client.callTool('cdp_list_events', { event_category: DEMO_SOURCE, event_name: 'purchase', limit: 100 });
+    const productPurchases = purchases.events.filter((event) => event.properties.purchase_type === 'product');
+    console.log('\nตัวอย่างการซื้อสินค้าสกินแคร์:');
+    for (const event of productPurchases.slice(0, 3)) {
+      console.log(`• ${event.properties.product_name} × ${event.properties.quantity} — ${money(event.revenue)} (${event.properties.order_id})`);
     }
 
     for (const alias of ['pimchanok-vip', 'preeyaporn-missed', 'methavee-lead']) {

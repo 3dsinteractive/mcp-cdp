@@ -39,6 +39,22 @@ const PATIENTS = [
   ['ธัญชนก', 'วิไล', 'thanyachanok-lead', 'standard', 'Thonglor', 'aging', 'botox', 'facebook', 0, 0, 'lead']
 ];
 
+const PRODUCTS = {
+  cleanser: { sku: 'SKIN-CLEAN-150', name: 'เจลล้างหน้าสำหรับผิวมัน 150 มล.', price: 690 },
+  moisturizer: { sku: 'SKIN-MOIST-50', name: 'มอยส์เจอไรเซอร์สำหรับผิวเป็นสิว 50 มล.', price: 990 },
+  vitamin_c: { sku: 'SKIN-VITC-30', name: 'เซรั่มวิตามินซี 30 มล.', price: 1490 },
+  peptide: { sku: 'SKIN-PEPTIDE-30', name: 'เซรั่มเปปไทด์บำรุงผิว 30 มล.', price: 1790 },
+  sunscreen: { sku: 'SKIN-SPF50-50', name: 'ครีมกันแดด SPF50 50 มล.', price: 890 },
+  body_lotion: { sku: 'BODY-LOTION-200', name: 'โลชั่นบำรุงผิวกาย 200 มล.', price: 790 }
+};
+const PRODUCTS_BY_CONCERN = {
+  acne: ['cleanser', 'moisturizer'],
+  aging: ['peptide', 'sunscreen'],
+  pigmentation: ['vitamin_c', 'sunscreen'],
+  body: ['body_lotion', 'sunscreen']
+};
+const PRODUCT_BUYERS = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12]);
+
 const customerId = (index) => `${PREFIX}customer_${String(index + 1).padStart(2, '0')}`;
 const CUSTOMER_IDS = PATIENTS.map((_, index) => customerId(index));
 const segmentId = (key) => `${SEGMENT_PREFIX}${key}`;
@@ -186,12 +202,55 @@ function addEvents() {
       trackEvent({
         ...common, id: `${base}_purchase`, event_name: 'purchase', channel: 'clinic',
         revenue: price, timestamp: daysAgo(11 - (index % 5)),
-        properties: { ...common.properties, order_id: `DEMO-RCPT-${index + 1}`, package_name: `${treatment} consultation package` }
+        properties: { ...common.properties, purchase_type: 'treatment', order_id: `DEMO-RCPT-${index + 1}`, package_name: `${treatment} consultation package` }
       });
     }
     if (index < 9) {
       trackEvent({ ...common, id: `${base}_followup`, event_name: 'followup_due', channel: 'clinic', timestamp: daysAgo(2) });
     }
+  }
+
+  // The clinic also sells skincare products online. Some carts are abandoned.
+  for (let index = 0; index < PATIENTS.length; index++) {
+    const concern = PATIENTS[index][5];
+    const productKeys = PRODUCTS_BY_CONCERN[concern];
+    const product = PRODUCTS[productKeys[index % productKeys.length]];
+    const product_id = product.sku.toLowerCase();
+    const page_url = `https://clinic.example/shop/products/${product_id}`;
+    const base = `${PREFIX}product_${String(index + 1).padStart(2, '0')}`;
+    const properties = {
+      product_id, sku: product.sku, product_name: product.name,
+      category: 'skincare', unit_price: product.price, currency: 'THB'
+    };
+
+    trackEvent({
+      id: `${base}_view`, customer_id: customerId(index), event_name: 'product_view',
+      event_category: SOURCE, page_url, channel: 'web', properties,
+      timestamp: daysAgo(8 - (index % 3))
+    });
+
+    const addedToCart = index < 14 || (index >= 18 && index < 21);
+    if (!addedToCart) continue;
+    const quantity = index % 4 === 0 ? 2 : 1;
+    trackEvent({
+      id: `${base}_cart`, customer_id: customerId(index), event_name: 'add_to_cart',
+      event_category: SOURCE, page_url, channel: 'web',
+      properties: { ...properties, quantity }, timestamp: daysAgo(6 - (index % 3))
+    });
+
+    if (!PRODUCT_BUYERS.has(index)) continue;
+    const order_id = `DEMO-SHOP-${String(index + 1).padStart(3, '0')}`;
+    const revenue = product.price * quantity;
+    trackEvent({
+      id: `${base}_purchase`, customer_id: customerId(index), event_name: 'purchase',
+      event_category: SOURCE, page_url: 'https://clinic.example/shop/checkout/success',
+      channel: 'online_store', revenue, currency: 'THB',
+      properties: {
+        ...properties, purchase_type: 'product', order_id, quantity,
+        items: [{ product_id, sku: product.sku, name: product.name, quantity, unit_price: product.price }]
+      },
+      timestamp: daysAgo(4 - (index % 3))
+    });
   }
 
   // Two anonymous visitors later identify themselves through a consultation form.
@@ -299,12 +358,14 @@ function addJourneys() {
 function countDemoRows(db) {
   const customers = db.prepare('SELECT COUNT(*) AS count FROM customers WHERE source = ? AND id LIKE ?').get(SOURCE, `${PREFIX}customer_%`).count;
   const events = db.prepare('SELECT COUNT(*) AS count FROM events WHERE event_category = ?').get(SOURCE).count;
+  const product_purchases = db.prepare("SELECT COUNT(*) AS count FROM events WHERE event_category = ? AND event_name = 'purchase' AND json_extract(properties, '$.purchase_type') = 'product'").get(SOURCE).count;
+  const product_revenue = db.prepare("SELECT COALESCE(SUM(revenue), 0) AS amount FROM events WHERE event_category = ? AND event_name = 'purchase' AND json_extract(properties, '$.purchase_type') = 'product'").get(SOURCE).amount;
   const segments = db.prepare(`SELECT COUNT(*) AS count FROM segments WHERE id IN (${inClause(SEGMENT_IDS)})`).get(...SEGMENT_IDS).count;
   const campaigns = db.prepare(`SELECT COUNT(*) AS count FROM campaigns WHERE id IN (${inClause(CAMPAIGN_IDS)})`).get(...CAMPAIGN_IDS).count;
   const journeys = db.prepare(`SELECT COUNT(*) AS count FROM journeys WHERE id IN (${inClause(JOURNEY_IDS)})`).get(...JOURNEY_IDS).count;
   const campaign_logs = db.prepare(`SELECT COUNT(*) AS count FROM campaign_logs WHERE campaign_id IN (${inClause(CAMPAIGN_IDS)})`).get(...CAMPAIGN_IDS).count;
   const journey_enrollments = db.prepare(`SELECT COUNT(*) AS count FROM journey_enrollments WHERE journey_id IN (${inClause(JOURNEY_IDS)})`).get(...JOURNEY_IDS).count;
-  return { customers, events, segments, campaigns, journeys, campaign_logs, journey_enrollments };
+  return { customers, events, product_purchases, product_revenue, segments, campaigns, journeys, campaign_logs, journey_enrollments };
 }
 
 export function createBeautyClinicDemo() {
@@ -327,7 +388,7 @@ export function createBeautyClinicDemo() {
     db.exec('COMMIT');
     return {
       dataset: SOURCE,
-      description: 'ชุดข้อมูลจำลองคลินิกเสริมความงามในกรุงเทพฯ (ข้อมูลสังเคราะห์)',
+      description: 'ชุดข้อมูลจำลองคลินิกเสริมความงามและร้านสกินแคร์ในกรุงเทพฯ (ข้อมูลสังเคราะห์)',
       counts,
       replaced_previous: replaced,
       sample_aliases: {
