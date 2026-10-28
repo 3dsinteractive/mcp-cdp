@@ -1,0 +1,4 @@
+external_id,first_name,last_name,email,phone,city,country,tier,lifecycle_stage,anonymous_id
+MEM-1001,สมชาย,ใจดี,somchai@example.com,0000000001,Bangkok,TH,gold,customer,anon_demo_001
+MEM-1002,สุดา,รักสวย,suda@example.com,0000000002,Chiang Mai,TH,silver,customer,
+MEM-1003,อนันดา,สายช้อป,ananda@example.com,0000000003,Bangkok,TH,standard,lead,anon_demo_003
